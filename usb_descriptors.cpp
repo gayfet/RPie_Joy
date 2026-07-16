@@ -36,8 +36,8 @@ uint8_t const desc_configuration[] = {
 // 4. String Descriptors
 char const* string_desc_arr [] = {
     (const char[]) { 0x09, 0x04 }, // 0: English
-    "HOTAS Maker",                 // 1: Manufacturer
-    "Pico Keyboard",               // 2: Product
+"GayFet July 2026",                // 1: Manufacturer
+    "RPie_Joy",                    // 2: Product
 };
 
 static uint16_t _desc_str[32];
