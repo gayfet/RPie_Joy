@@ -30,12 +30,14 @@ include(pico_sdk_import.cmake)
 
 project(RPie_Joy C CXX ASM)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(RPie_Joy RPie_Joy.cpp )
+add_executable(RPie_Joy RPie_Joy.cpp usb_descriptors.cpp)
 
 pico_set_program_name(RPie_Joy "RPie_Joy")
 pico_set_program_version(RPie_Joy "0.1")
@@ -46,6 +48,8 @@ pico_enable_stdio_usb(RPie_Joy 0)
 
 # Add the standard library to the build
 target_link_libraries(RPie_Joy
+        tinyusb_device
+        tinyusb_board
         pico_stdlib)
 
 # Add the standard include files to the build
