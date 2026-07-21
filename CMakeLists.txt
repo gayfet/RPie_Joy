@@ -48,6 +48,8 @@ pico_enable_stdio_usb(RPie_Joy 0)
 
 # Add the standard library to the build
 target_link_libraries(RPie_Joy
+        hardware_adc
+        hardware_gpio
         tinyusb_device
         tinyusb_board
         pico_stdlib)

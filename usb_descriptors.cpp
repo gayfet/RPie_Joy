@@ -20,8 +20,38 @@ tusb_desc_device_t const desc_device = {
 };
 
 // 2. HID Report Descriptor
+// 2. HID Report Descriptor
 uint8_t const desc_hid_report[] = {
-    TUD_HID_REPORT_DESC_KEYBOARD()
+    HID_USAGE_PAGE ( HID_USAGE_PAGE_DESKTOP     ),
+    HID_USAGE      ( HID_USAGE_DESKTOP_JOYSTICK ),
+    HID_COLLECTION ( HID_COLLECTION_APPLICATION ),
+        
+        // --- Axes: X and Y (16-bit format) ---
+        HID_USAGE_PAGE   ( HID_USAGE_PAGE_DESKTOP                 ),
+        HID_USAGE        ( HID_USAGE_DESKTOP_X                    ),
+        HID_USAGE        ( HID_USAGE_DESKTOP_Y                    ),
+        HID_LOGICAL_MIN  ( 0x00                                   ), // Minimum Value: 0
+        HID_LOGICAL_MAX_N( 0x0FFF, 2                              ), // Maximum Value: 4095
+        HID_REPORT_COUNT ( 2                                      ), // Quantity: 2 axes
+        HID_REPORT_SIZE  ( 16                                     ), // Size: 16 bits per axis
+        HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
+        
+        // --- Buttons: 6 buttons ---
+        HID_USAGE_PAGE   ( HID_USAGE_PAGE_BUTTON                  ),
+        HID_USAGE_MIN    ( 1                                      ),
+        HID_USAGE_MAX    ( 6                                      ),
+        HID_LOGICAL_MIN  ( 0                                      ),
+        HID_LOGICAL_MAX  ( 1                                      ),
+        HID_REPORT_COUNT ( 6                                      ), // Quantity: 6 buttons
+        HID_REPORT_SIZE  ( 1                                      ), // Size: 1 bit each
+        HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
+        
+        // --- Padding: 2 empty bits to complete the byte ---
+        HID_REPORT_COUNT ( 1                                      ),
+        HID_REPORT_SIZE  ( 2                                      ),
+        HID_INPUT        ( HID_CONSTANT                           ),
+
+    HID_COLLECTION_END
 };
 
 // 3. Configuration Descriptor
@@ -30,7 +60,7 @@ uint8_t const desc_hid_report[] = {
 
 uint8_t const desc_configuration[] = {
     TUD_CONFIG_DESCRIPTOR(1, 1, 0, CONFIG_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    TUD_HID_DESCRIPTOR(0, 0, HID_ITF_PROTOCOL_KEYBOARD, sizeof(desc_hid_report), EPNUM_HID, CFG_TUD_HID_EP_BUFSIZE, 10)
+    TUD_HID_DESCRIPTOR(0, 0, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_report), EPNUM_HID, CFG_TUD_HID_EP_BUFSIZE, 10)
 };
 
 // 4. String Descriptors
