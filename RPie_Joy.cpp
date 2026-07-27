@@ -20,19 +20,25 @@ const uint8_t BUTTON_PINS[NUM_BUTTONS] = {2, 3, 4, 5, 6, 7};
 // --- Custom HID Report Struct ---
 // Dynamically sizes the axes array.
 // Buttons use a 32-bit int, allowing up to 32 buttons without struct changes.
+// --- Custom HID Report Struct ---
 struct __attribute__((packed)) hotas_report_t {
-    uint16_t axes[NUM_AXES]; 
+    int16_t axes[NUM_AXES];  // CRITICAL FIX: Changed to signed 16-bit
     uint32_t buttons;        
 };
 
 // --- Input Read Functions ---
 bool digital_read(uint8_t pin) {
-    return !gpio_get(pin); // True if pressed (pulled to ground)
+    return !gpio_get(pin);
 }
 
-uint16_t analog_read_axis(uint8_t adc_channel) {
+// Stretches the 12-bit ADC (0 to 4095) across standard signed 16-bit (-32767 to +32767)
+int16_t analog_read_axis(uint8_t adc_channel) {
     adc_select_input(adc_channel);
-    return adc_read(); // Raw 12-bit unsigned integer (0-4095)
+    uint16_t raw_adc = adc_read(); 
+    
+    // Smoothly map the 0-4095 hardware read to the full Windows axis range
+    int32_t mapped = ((int32_t)raw_adc * 65534 / 4095) - 32767;
+    return (int16_t)mapped;
 }
 
 int main() {

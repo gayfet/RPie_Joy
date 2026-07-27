@@ -18,7 +18,7 @@ tusb_desc_device_t const desc_device = {
     .bDeviceProtocol = 0x00,
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
     .idVendor = 0xCafe, 
-    .idProduct = 0x4008, 
+    .idProduct = 0x4009, 
     .bcdDevice = 0x0100,
     .iManufacturer = 0x01,
     .iProduct = 0x02,
@@ -38,15 +38,14 @@ uint8_t const desc_hid_report[] = {
         HID_USAGE_PAGE ( HID_USAGE_PAGE_DESKTOP ),
         HID_USAGE      ( HID_USAGE_DESKTOP_POINTER ),
         HID_COLLECTION ( HID_COLLECTION_PHYSICAL ),
-            // Explicitly define X and Y instead of using a MIN/MAX range
             HID_USAGE        ( HID_USAGE_DESKTOP_X                    ),
             HID_USAGE        ( HID_USAGE_DESKTOP_Y                    ),
             
-            // CRITICAL FIX: MIN and MAX must be exactly 2 bytes!
-            HID_LOGICAL_MIN_N( 0x0000, 2                              ), 
-            HID_LOGICAL_MAX_N( 0x0FFF, 2                              ), 
+            // CRITICAL FIX: Standard Signed 16-bit limits (-32767 to +32767)
+            HID_LOGICAL_MIN_N( 0x8001, 2                              ), 
+            HID_LOGICAL_MAX_N( 0x7FFF, 2                              ), 
             
-            HID_REPORT_COUNT ( 2                                      ), 
+            HID_REPORT_COUNT ( NUM_AXES                               ), 
             HID_REPORT_SIZE  ( 16                                     ), 
             HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
         HID_COLLECTION_END,
