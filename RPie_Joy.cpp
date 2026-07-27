@@ -1,9 +1,3 @@
-/*
-Gayfet July 2026 
-This is a custom implementation of a USB HID device for the Rasberry Pi Pico, designed to function as a joystick with analog axes 
-and multiple buttons. It utilizes the TinyUSB stack to handle USB communication and HID report generation. 
-*/
-
 #include "bsp/board.h"
 #include "tusb.h"
 #include <cstdint>
@@ -12,57 +6,34 @@ and multiple buttons. It utilizes the TinyUSB stack to handle USB communication 
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
 
-// Hardware pin definitions----
-const uint8_t ADC_PIN_X = 26; 
-const uint8_t ADC_PIN_Y = 27; 
-const uint8_t BUTTON_PINS[6] = {2, 3, 4, 5, 6, 7}; 
+// ==========================================
+// HOTAS CONFIGURATION (Must match descriptors)
+// ==========================================
+#define NUM_AXES 2       // Quantity of analog axes 
+#define NUM_BUTTONS 6    // Quantity of buttons (Max 32)
 
-// Serial input definitions 
-const uint8_t LATCH_PIN = 8; 
-const uint8_t CLOCK_PIN = 9; 
-const uint8_t SERIAL_IN = 10;
-const uint8_t NUM_BUTTONS = 8; // Number of buttons in the serial input
+// Map your GPIO pins sequentially. 
+// Note: Pico ADC pins must be 26, 27, 28, or 29.
+const uint8_t AXIS_PINS[NUM_AXES] = {26, 27}; 
+const uint8_t BUTTON_PINS[NUM_BUTTONS] = {2, 3, 4, 5, 6, 7}; 
 
 // --- Custom HID Report Struct ---
-// This strictly maps out the bytes we send to the PC.
-// __attribute__((packed)) prevents the C++ compiler from adding empty memory padding.
+// Dynamically sizes the axes array.
+// Buttons use a 32-bit int, allowing up to 32 buttons without struct changes.
 struct __attribute__((packed)) hotas_report_t {
-    uint16_t x;       // 16-bit integer to hold our 12-bit X value
-    uint16_t y;       // 16-bit integer to hold our 12-bit Y value
-    uint8_t buttons;  // 8-bit integer to hold our 6 buttons + 2 empty padding bits
+    uint16_t axes[NUM_AXES]; 
+    uint32_t buttons;        
 };
 
 // --- Input Read Functions ---
 bool digital_read(uint8_t pin) {
-    return !gpio_get(pin);
+    return !gpio_get(pin); // True if pressed (pulled to ground)
 }
 
 uint16_t analog_read_axis(uint8_t adc_channel) {
     adc_select_input(adc_channel);
-    return adc_read(); 
+    return adc_read(); // Raw 12-bit unsigned integer (0-4095)
 }
-
-//Serial input read function 
-
-uint16_t serial_read() {
-    uint16_t button_states = 0;
-
-    // Latch the button states
-    gpio_put(LATCH_PIN, 1);
-    sleep_us(5); // Short delay to ensure the latch is registered
-    gpio_put(LATCH_PIN, 0);
-
-    // Read each button state
-    for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
-        button_states |= (gpio_get(SERIAL_IN) << i);
-        gpio_put(CLOCK_PIN, 1);
-        sleep_us(5); // Short delay to ensure the clock pulse is registered
-        gpio_put(CLOCK_PIN, 0);
-    }
-
-    return button_states;
-}
-
 
 int main() {
     board_init();
@@ -71,10 +42,13 @@ int main() {
     stdio_init_all();
     adc_init();
 
-    adc_gpio_init(ADC_PIN_X);
-    adc_gpio_init(ADC_PIN_Y);
+    // Dynamically initialize all defined axes
+    for (int i = 0; i < NUM_AXES; i++) {
+        adc_gpio_init(AXIS_PINS[i]);
+    }
 
-    for (int i = 0; i < 6; i++) {
+    // Dynamically initialize all defined buttons
+    for (int i = 0; i < NUM_BUTTONS; i++) {
         gpio_init(BUTTON_PINS[i]);
         gpio_set_dir(BUTTON_PINS[i], GPIO_IN);
         gpio_pull_up(BUTTON_PINS[i]); 
@@ -83,21 +57,22 @@ int main() {
     uint32_t last_report_time = 0;
 
     while (true) {
-        tud_task(); //Must be called frequently to maintain USB connection
+        tud_task(); 
         
         uint32_t current_time = board_millis();
 
         if (tud_hid_ready() && (current_time - last_report_time > 10)) {
             
-            // Create our custom report package
             hotas_report_t report = {0};
 
-            // Read the raw 12-bit analog values
-            report.x = analog_read_axis(0); 
-            report.y = analog_read_axis(1); 
+            // Read all analog axes. 
+            // We subtract 26 to get the hardware ADC channel (Pin 26 = Ch 0)
+            for (int i = 0; i < NUM_AXES; i++) {
+                report.axes[i] = analog_read_axis(AXIS_PINS[i] - 26); 
+            }
 
-            // Pack the 6 buttons into the 8-bit integer
-            for (int i = 0; i < 6; i++) {
+            // Pack the defined buttons into the 32-bit integer
+            for (int i = 0; i < NUM_BUTTONS; i++) {
                 if (digital_read(BUTTON_PINS[i])) {
                     report.buttons |= (1 << i); 
                 }

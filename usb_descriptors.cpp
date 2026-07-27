@@ -1,6 +1,13 @@
 #include "tusb.h"
 #include <cstring>
 #include <stdint.h> 
+
+// ==========================================
+// HOTAS CONFIGURATION (Must match main.cpp)
+// ==========================================
+#define NUM_AXES 2
+#define NUM_BUTTONS 6
+
 // 1. Device Descriptor
 tusb_desc_device_t const desc_device = {
     .bLength = sizeof(tusb_desc_device_t),
@@ -20,35 +27,34 @@ tusb_desc_device_t const desc_device = {
 };
 
 // 2. HID Report Descriptor
-// 2. HID Report Descriptor
 uint8_t const desc_hid_report[] = {
     HID_USAGE_PAGE ( HID_USAGE_PAGE_DESKTOP     ),
     HID_USAGE      ( HID_USAGE_DESKTOP_JOYSTICK ),
     HID_COLLECTION ( HID_COLLECTION_APPLICATION ),
         
-        // --- Axes: X and Y (16-bit format) ---
+        // --- Axes (Dynamic Allocation) ---
         HID_USAGE_PAGE   ( HID_USAGE_PAGE_DESKTOP                 ),
-        HID_USAGE        ( HID_USAGE_DESKTOP_X                    ),
-        HID_USAGE        ( HID_USAGE_DESKTOP_Y                    ),
-        HID_LOGICAL_MIN  ( 0x00                                   ), // Minimum Value: 0
-        HID_LOGICAL_MAX_N( 0x0FFF, 2                              ), // Maximum Value: 4095
-        HID_REPORT_COUNT ( 2                                      ), // Quantity: 2 axes
-        HID_REPORT_SIZE  ( 16                                     ), // Size: 16 bits per axis
+        HID_USAGE_MIN    ( HID_USAGE_DESKTOP_X                    ),
+        HID_USAGE_MAX    ( HID_USAGE_DESKTOP_X + NUM_AXES - 1     ), 
+        HID_LOGICAL_MIN  ( 0x00                                   ), 
+        HID_LOGICAL_MAX_N( 0x0FFF, 2                              ), // Max 4095
+        HID_REPORT_COUNT ( NUM_AXES                               ), 
+        HID_REPORT_SIZE  ( 16                                     ), // 16 bits per axis
         HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
         
-        // --- Buttons: 6 buttons ---
+        // --- Buttons (Dynamic Allocation) ---
         HID_USAGE_PAGE   ( HID_USAGE_PAGE_BUTTON                  ),
         HID_USAGE_MIN    ( 1                                      ),
-        HID_USAGE_MAX    ( 6                                      ),
+        HID_USAGE_MAX    ( NUM_BUTTONS                            ),
         HID_LOGICAL_MIN  ( 0                                      ),
         HID_LOGICAL_MAX  ( 1                                      ),
-        HID_REPORT_COUNT ( 6                                      ), // Quantity: 6 buttons
-        HID_REPORT_SIZE  ( 1                                      ), // Size: 1 bit each
+        HID_REPORT_COUNT ( NUM_BUTTONS                            ), 
+        HID_REPORT_SIZE  ( 1                                      ), // 1 bit per button
         HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
         
-        // --- Padding: 2 empty bits to complete the byte ---
-        HID_REPORT_COUNT ( 1                                      ),
-        HID_REPORT_SIZE  ( 2                                      ),
+        // --- Padding (Auto-fills the remainder of the 32-bit block) ---
+        HID_REPORT_COUNT ( 32 - NUM_BUTTONS                       ),
+        HID_REPORT_SIZE  ( 1                                      ),
         HID_INPUT        ( HID_CONSTANT                           ),
 
     HID_COLLECTION_END
@@ -66,7 +72,7 @@ uint8_t const desc_configuration[] = {
 // 4. String Descriptors
 char const* string_desc_arr [] = {
     (const char[]) { 0x09, 0x04 }, // 0: English
-"GayFet July 2026",                // 1: Manufacturer
+    "GayFet July 2026",            // 1: Manufacturer
     "RPie_Joy",                    // 2: Product
 };
 
