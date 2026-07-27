@@ -1,3 +1,9 @@
+/*
+Gayfet July 2026 
+This is a custom implementation of a USB HID device for the Rasberry Pi Pico, designed to function as a joystick with analog axes 
+and multiple buttons. It utilizes the TinyUSB stack to handle USB communication and HID report generation. 
+*/
+
 #include "bsp/board.h"
 #include "tusb.h"
 #include <cstdint>
@@ -6,10 +12,16 @@
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
 
-// --- Hardware Pin Definitions ---
+// Hardware pin definitions----
 const uint8_t ADC_PIN_X = 26; 
 const uint8_t ADC_PIN_Y = 27; 
 const uint8_t BUTTON_PINS[6] = {2, 3, 4, 5, 6, 7}; 
+
+// Serial input definitions 
+const uint8_t LATCH_PIN = 8; 
+const uint8_t CLOCK_PIN = 9; 
+const uint8_t SERIAL_IN = 10;
+const uint8_t NUM_BUTTONS = 8; // Number of buttons in the serial input
 
 // --- Custom HID Report Struct ---
 // This strictly maps out the bytes we send to the PC.
@@ -25,11 +37,32 @@ bool digital_read(uint8_t pin) {
     return !gpio_get(pin);
 }
 
-// Now simply returns the raw 12-bit unsigned integer (0-4095)
 uint16_t analog_read_axis(uint8_t adc_channel) {
     adc_select_input(adc_channel);
     return adc_read(); 
 }
+
+//Serial input read function 
+
+uint16_t serial_read() {
+    uint16_t button_states = 0;
+
+    // Latch the button states
+    gpio_put(LATCH_PIN, 1);
+    sleep_us(5); // Short delay to ensure the latch is registered
+    gpio_put(LATCH_PIN, 0);
+
+    // Read each button state
+    for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
+        button_states |= (gpio_get(SERIAL_IN) << i);
+        gpio_put(CLOCK_PIN, 1);
+        sleep_us(5); // Short delay to ensure the clock pulse is registered
+        gpio_put(CLOCK_PIN, 0);
+    }
+
+    return button_states;
+}
+
 
 int main() {
     board_init();
@@ -50,7 +83,7 @@ int main() {
     uint32_t last_report_time = 0;
 
     while (true) {
-        tud_task(); 
+        tud_task(); //Must be called frequently to maintain USB connection
         
         uint32_t current_time = board_millis();
 
