@@ -42,6 +42,11 @@ int main() {
     stdio_init_all();
     adc_init();
 
+    //Turn LED on to indicate successful boot
+    gpio_init(25); 
+    gpio_set_dir(25, GPIO_OUT);
+    gpio_put(25,1);
+
     // Dynamically initialize all defined axes
     for (int i = 0; i < NUM_AXES; i++) {
         adc_gpio_init(AXIS_PINS[i]);
@@ -86,6 +91,8 @@ int main() {
     }
     return 0;
 }
+
+
 
 // ==========================================
 // TinyUSB HID Callbacks (Required for linking)
