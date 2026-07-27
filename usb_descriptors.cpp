@@ -18,7 +18,7 @@ tusb_desc_device_t const desc_device = {
     .bDeviceProtocol = 0x00,
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
     .idVendor = 0xCafe, 
-    .idProduct = 0x4006, 
+    .idProduct = 0x4010, 
     .bcdDevice = 0x0100,
     .iManufacturer = 0x01,
     .iProduct = 0x02,
@@ -27,20 +27,21 @@ tusb_desc_device_t const desc_device = {
 };
 
 // 2. HID Report Descriptor
-// 2. HID Report Descriptor
 uint8_t const desc_hid_report[] = {
     HID_USAGE_PAGE ( HID_USAGE_PAGE_DESKTOP     ),
-    HID_USAGE      ( HID_USAGE_DESKTOP_JOYSTICK ), 
+    HID_USAGE      ( HID_USAGE_DESKTOP_GAMEPAD  ), // Changed to GAMEPAD
     HID_COLLECTION ( HID_COLLECTION_APPLICATION ),
         
-        // --- Axes: Wrapped in a Physical Pointer Collection for Windows ---
+        HID_REPORT_ID  ( 1 ), // explicitly numbering this data stream
+
+        // --- Axes ---
         HID_USAGE_PAGE ( HID_USAGE_PAGE_DESKTOP ),
-        HID_USAGE      ( HID_USAGE_DESKTOP_POINTER ), // Tells Windows these are stick axes
+        HID_USAGE      ( HID_USAGE_DESKTOP_POINTER ),
         HID_COLLECTION ( HID_COLLECTION_PHYSICAL ),
             HID_USAGE_MIN    ( HID_USAGE_DESKTOP_X                    ),
             HID_USAGE_MAX    ( HID_USAGE_DESKTOP_X + NUM_AXES - 1     ), 
             HID_LOGICAL_MIN  ( 0x00                                   ), 
-            HID_LOGICAL_MAX_N( 0x0FFF, 2                              ), // Max 4095
+            HID_LOGICAL_MAX_N( 0x0FFF, 2                              ), 
             HID_REPORT_COUNT ( NUM_AXES                               ), 
             HID_REPORT_SIZE  ( 16                                     ), 
             HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
@@ -59,7 +60,7 @@ uint8_t const desc_hid_report[] = {
         // --- Padding ---
         HID_REPORT_COUNT ( 32 - NUM_BUTTONS                       ),
         HID_REPORT_SIZE  ( 1                                      ),
-        HID_INPUT        ( HID_CONSTANT                           ),
+        HID_INPUT        ( HID_CONSTANT | HID_VARIABLE | HID_ABSOLUTE ), 
 
     HID_COLLECTION_END
 };
