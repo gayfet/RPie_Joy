@@ -39,7 +39,6 @@ int main() {
     board_init();
     tusb_init();
 
-    stdio_init_all();
     adc_init();
 
     //Turn LED on to indicate successful boot
