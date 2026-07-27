@@ -42,27 +42,6 @@ uint16_t analog_read_axis(uint8_t adc_channel) {
     return adc_read(); 
 }
 
-//Serial input read function 
-
-uint16_t serial_read() {
-    uint16_t button_states = 0;
-
-    // Latch the button states
-    gpio_put(LATCH_PIN, 1);
-    sleep_us(5); // Short delay to ensure the latch is registered
-    gpio_put(LATCH_PIN, 0);
-
-    // Read each button state
-    for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
-        button_states |= (gpio_get(SERIAL_IN) << i);
-        gpio_put(CLOCK_PIN, 1);
-        sleep_us(5); // Short delay to ensure the clock pulse is registered
-        gpio_put(CLOCK_PIN, 0);
-    }
-
-    return button_states;
-}
-
 
 int main() {
     board_init();
