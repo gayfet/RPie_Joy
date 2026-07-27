@@ -69,11 +69,25 @@ int main() {
             
             hotas_report_t report = {0};
 
-            // Read all analog axes. 
-            // We subtract 26 to get the hardware ADC channel (Pin 26 = Ch 0)
-            for (int i = 0; i < NUM_AXES; i++) {
-                report.axes[i] = analog_read_axis(AXIS_PINS[i] - 26); 
+            // --- COMMENT OUT THE REAL HARDWARE READ ---
+            // for (int i = 0; i < NUM_AXES; i++) {
+            //     report.axes[i] = analog_read_axis(AXIS_PINS[i] - 26); 
+            // }
+
+            // --- INJECT FAKE SWEEPING DATA ---
+            static uint16_t sweep_val = 0;
+            static bool sweep_up = true;
+            
+            if (sweep_up) {
+                sweep_val += 20;
+                if (sweep_val >= 4095) sweep_up = false;
+            } else {
+                sweep_val -= 20;
+                if (sweep_val <= 0) sweep_up = true;
             }
+
+            report.axes[0] = sweep_val; // X axis sweeps left and right
+            report.axes[1] = 2047;      // Y axis stays locked dead center
 
             // Pack the defined buttons into the 32-bit integer
             for (int i = 0; i < NUM_BUTTONS; i++) {
