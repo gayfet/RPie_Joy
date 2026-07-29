@@ -7,6 +7,7 @@ and multiple buttons. It utilizes the TinyUSB stack to handle USB communication 
 #include "bsp/board.h"
 #include "tusb.h"
 #include <cstdint>
+#include <bitset>
 
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
@@ -15,54 +16,35 @@ and multiple buttons. It utilizes the TinyUSB stack to handle USB communication 
 // Hardware pin definitions----
 const uint8_t ADC_PIN_X = 26; 
 const uint8_t ADC_PIN_Y = 27; 
-const uint8_t BUTTON_PINS[6] = {2, 3, 4, 5, 6, 7}; 
+const uint8_t ADC_PIN_Z = 28;  
+const uint8_t ADC_PIN_RZ = 29;
 
-// Serial input definitions 
-const uint8_t LATCH_PIN = 8; 
-const uint8_t CLOCK_PIN = 9; 
-const uint8_t SERIAL_IN = 10;
-const uint8_t NUM_BUTTONS = 8; // Number of buttons in the serial input
+const uint8_t NUM_BUTTONS = 64; 
 
 // --- Custom HID Report Struct ---
-// This strictly maps out the bytes we send to the PC.
-// __attribute__((packed)) prevents the C++ compiler from adding empty memory padding.
+// __attribute__((packed)) ensures that the struct is packed without any padding, crucial for HID report. 
 struct __attribute__((packed)) hotas_report_t {
-    uint16_t x;       // 16-bit integer to hold our 12-bit X value
-    uint16_t y;       // 16-bit integer to hold our 12-bit Y value
-    uint8_t buttons;  // 8-bit integer to hold our 6 buttons + 2 empty padding bits
+    uint16_t x;       // 16-bit integer for X axis
+    uint16_t y;       // 16-bit integer for Y axis
+    uint16_t z;       // 16-bit integer for Z axis
+    uint16_t rz;      // 16-bit integer for RZ axis
+    uint64_t button_array; // 64-bit integer to hold exactly 64 buttons (no padding needed)
 };
 
 // --- Input Read Functions ---
-bool digital_read(uint8_t pin) {
-    return !gpio_get(pin);
-}
-
 uint16_t analog_read_axis(uint8_t adc_channel) {
     adc_select_input(adc_channel);
     return adc_read(); 
 }
 
-//Serial input read function 
-
-uint16_t serial_read() {
-    uint16_t button_states = 0;
-
-    // Latch the button states
-    gpio_put(LATCH_PIN, 1);
-    sleep_us(5); // Short delay to ensure the latch is registered
-    gpio_put(LATCH_PIN, 0);
-
-    // Read each button state
-    for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
-        button_states |= (gpio_get(SERIAL_IN) << i);
-        gpio_put(CLOCK_PIN, 1);
-        sleep_us(5); // Short delay to ensure the clock pulse is registered
-        gpio_put(CLOCK_PIN, 0);
+void setButton(uint64_t &buttonArray, uint8_t buttonIndex, bool value) {
+    if (buttonIndex >= NUM_BUTTONS) return; // Out of bounds check
+    if (value) { //setting button to 1 (true)
+        buttonArray |= (1ULL << buttonIndex); // Set the bit
+    } else { //setting button to 0 (false)
+        buttonArray &= ~(1ULL << buttonIndex); // Clear the bit
     }
-
-    return button_states;
 }
-
 
 int main() {
     board_init();
@@ -71,19 +53,16 @@ int main() {
     stdio_init_all();
     adc_init();
 
+    // Initialize all 4 ADCs
     adc_gpio_init(ADC_PIN_X);
     adc_gpio_init(ADC_PIN_Y);
-
-    for (int i = 0; i < 6; i++) {
-        gpio_init(BUTTON_PINS[i]);
-        gpio_set_dir(BUTTON_PINS[i], GPIO_IN);
-        gpio_pull_up(BUTTON_PINS[i]); 
-    }
+    adc_gpio_init(ADC_PIN_Z);
+    adc_gpio_init(ADC_PIN_RZ);
 
     uint32_t last_report_time = 0;
 
     while (true) {
-        tud_task(); //Must be called frequently to maintain USB connection
+        tud_task(); // Must be called frequently to maintain USB connection
         
         uint32_t current_time = board_millis();
 
@@ -95,15 +74,11 @@ int main() {
             // Read the raw 12-bit analog values
             report.x = analog_read_axis(0); 
             report.y = analog_read_axis(1); 
+            report.z = analog_read_axis(2); 
+            report.rz = analog_read_axis(3); 
 
-            // Pack the 6 buttons into the 8-bit integer
-            for (int i = 0; i < 6; i++) {
-                if (digital_read(BUTTON_PINS[i])) {
-                    report.buttons |= (1 << i); 
-                }
-            }
+            setButton(report.button_array, 0, 1); // Sets button 0 to pressed (1)
 
-            // Send the raw struct memory directly over USB
             tud_hid_report(0, &report, sizeof(report));
 
             last_report_time = current_time;
@@ -111,6 +86,9 @@ int main() {
     }
     return 0;
 }
+
+
+
 
 // ==========================================
 // TinyUSB HID Callbacks (Required for linking)
