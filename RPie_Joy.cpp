@@ -2,6 +2,11 @@
 Gayfet July 2026 
 This is a custom implementation of a USB HID device for the Rasberry Pi Pico, designed to function as a joystick with analog axes 
 and multiple buttons. It utilizes the TinyUSB stack to handle USB communication and HID report generation. 
+
+Uses two main functions; 
+analog_read_axis() to read the analog values from the ADC channels (0-3) 
+
+set_button() to set or clear a specific button in the 64-bit button array
 */
 
 #include "bsp/board.h"
@@ -40,7 +45,7 @@ uint16_t analog_read_axis(uint8_t adc_channel) {
 }
 
 // Button helper function to set or clear a specific button in the 64-bit button array
-void setButton(uint64_t *buttonArray, uint8_t buttonIndex, bool value) {
+void set_button(uint64_t *buttonArray, uint8_t buttonIndex, bool value) {
     if (buttonIndex >= NUM_BUTTONS) return; // Out of bounds check
     if (buttonArray == nullptr) return;
     
@@ -91,7 +96,7 @@ int main() {
 
             //Example of reading button states from GPIO pins and setting them in the report
             // Uncomment and modify as needed for your specific button GPIOs
-            //setButton(&report.button_array, 0, gpio_get(0)); 
+            //set_button(&report.button_array, 0, gpio_get(0)); 
 
             tud_hid_report(0, &report, sizeof(report));
 
