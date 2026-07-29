@@ -32,32 +32,44 @@ struct __attribute__((packed)) hotas_report_t {
 };
 
 // --- Input Read Functions ---
+
+// Reads analog value from channels 0-3, corresponds to X,Y, Z, and RZ returns a 12-bit value
 uint16_t analog_read_axis(uint8_t adc_channel) {
     adc_select_input(adc_channel);
     return adc_read(); 
 }
 
-void setButton(uint64_t &buttonArray, uint8_t buttonIndex, bool value) {
+// Button helper function to set or clear a specific button in the 64-bit button array
+void setButton(uint64_t *buttonArray, uint8_t buttonIndex, bool value) {
     if (buttonIndex >= NUM_BUTTONS) return; // Out of bounds check
-    if (value) { //setting button to 1 (true)
-        buttonArray |= (1ULL << buttonIndex); // Set the bit
-    } else { //setting button to 0 (false)
-        buttonArray &= ~(1ULL << buttonIndex); // Clear the bit
+    if (buttonArray == nullptr) return;
+    
+    if (value) { // setting button to 1 (true)
+        *buttonArray |= (1ULL << buttonIndex); 
+    } else { // setting button to 0 (false)
+        *buttonArray &= ~(1ULL << buttonIndex); 
     }
 }
 
 int main() {
+    // Initialize the board and USB stack
     board_init();
     tusb_init();
 
     stdio_init_all();
     adc_init();
 
-    // Initialize all 4 ADCs
+    // Initialize used ADC pins
     adc_gpio_init(ADC_PIN_X);
     adc_gpio_init(ADC_PIN_Y);
     adc_gpio_init(ADC_PIN_Z);
     adc_gpio_init(ADC_PIN_RZ);
+
+    //Initialize used GPIO pins 
+    /*  Example of initializing GPIO pin 0 for button input, uncomment and modify as needed
+    gpio_init(0); 
+    gpio_set_dir(0, false); 
+    */
 
     uint32_t last_report_time = 0;
 
@@ -77,7 +89,9 @@ int main() {
             report.z = analog_read_axis(2); 
             report.rz = analog_read_axis(3); 
 
-            setButton(report.button_array, 0, 1); // Sets button 0 to pressed (1)
+            //Example of reading button states from GPIO pins and setting them in the report
+            // Uncomment and modify as needed for your specific button GPIOs
+            //setButton(&report.button_array, 0, gpio_get(0)); 
 
             tud_hid_report(0, &report, sizeof(report));
 
@@ -86,8 +100,6 @@ int main() {
     }
     return 0;
 }
-
-
 
 
 // ==========================================
